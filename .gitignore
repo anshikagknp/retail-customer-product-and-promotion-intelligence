@@ -1,0 +1,7 @@
+.venv/
+.idea/
+.env
+data/raw/*
+data/processed/*
+.ipynb_checkpoints/
+__pycache__/
