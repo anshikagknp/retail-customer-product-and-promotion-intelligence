@@ -2,6 +2,10 @@
 .idea/
 .env
 data/raw/*
-data/processed/*
+data/processed/cleaned_transactions.csv
+data/processed/cleaned_transactions.parquet
+data/processed/baskets.csv
+data/processed/cleaned_products.csv
+data/processed/cleaned_coupons.csv
 .ipynb_checkpoints/
 __pycache__/

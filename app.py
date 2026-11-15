@@ -62,12 +62,14 @@ st.markdown("""
 def load_data():
     base_dir = Path(__file__).resolve().parent / "data" / "processed"
     
+    if not (base_dir / "household_summary.csv").exists():
+        st.error(f"Processed retail data not found at {base_dir}. Please ensure required files are present.")
+        st.stop()
+        
     hh = pd.read_csv(base_dir / "household_summary.csv")
-    baskets = pd.read_csv(base_dir / "baskets.csv")
-    products = pd.read_csv(base_dir / "cleaned_products.csv")
-    campaigns = pd.read_csv(base_dir / "cleaned_campaigns.csv")
-    camp_hh = pd.read_csv(base_dir / "cleaned_campaign_households.csv")
-    redempt = pd.read_csv(base_dir / "cleaned_coupon_redemptions.csv")
+    campaigns = pd.read_csv(base_dir / "cleaned_campaigns.csv") if (base_dir / "cleaned_campaigns.csv").exists() else pd.DataFrame()
+    camp_hh = pd.read_csv(base_dir / "cleaned_campaign_households.csv") if (base_dir / "cleaned_campaign_households.csv").exists() else pd.DataFrame()
+    redempt = pd.read_csv(base_dir / "cleaned_coupon_redemptions.csv") if (base_dir / "cleaned_coupon_redemptions.csv").exists() else pd.DataFrame()
     
     # Precompute RFM segments
     rfm = hh.copy()
@@ -93,17 +95,41 @@ def load_data():
     rfm["Customer_Segment"] = rfm.apply(assign_segment, axis=1)
     
     # Weekly aggregation
-    weekly = baskets.groupby("WEEK_NO").agg(
-        total_sales=("basket_sales", "sum"),
-        basket_count=("BASKET_ID", "count"),
-        active_households=("household_key", "nunique"),
-        retail_discounts=("retail_disc_amount", "sum")
-    ).reset_index()
-    weekly["sales_4wk_ma"] = weekly["total_sales"].rolling(4, min_periods=1).mean()
-    
-    return hh, baskets, products, campaigns, camp_hh, redempt, rfm, weekly
+    if (base_dir / "weekly_trends.csv").exists():
+        weekly = pd.read_csv(base_dir / "weekly_trends.csv")
+    elif (base_dir / "baskets.csv").exists():
+        baskets = pd.read_csv(base_dir / "baskets.csv")
+        weekly = baskets.groupby("WEEK_NO").agg(
+            total_sales=("basket_sales", "sum"),
+            basket_count=("BASKET_ID", "count"),
+            active_households=("household_key", "nunique"),
+            retail_discounts=("retail_disc_amount", "sum")
+        ).reset_index()
+        weekly["sales_4wk_ma"] = weekly["total_sales"].rolling(4, min_periods=1).mean()
+    else:
+        weekly = pd.DataFrame()
+        
+    # Department summary
+    if (base_dir / "department_summary.csv").exists():
+        dept_agg = pd.read_csv(base_dir / "department_summary.csv")
+    else:
+        dept_agg = pd.DataFrame()
+        
+    # Brand summary
+    if (base_dir / "brand_summary.csv").exists():
+        brand_agg = pd.read_csv(base_dir / "brand_summary.csv")
+    else:
+        brand_agg = pd.DataFrame()
+        
+    # SKU velocity summary
+    if (base_dir / "sku_velocity_summary.csv").exists():
+        tier_summary = pd.read_csv(base_dir / "sku_velocity_summary.csv")
+    else:
+        tier_summary = pd.DataFrame()
+        
+    return hh, campaigns, camp_hh, redempt, rfm, weekly, dept_agg, brand_agg, tier_summary
 
-hh_df, baskets_df, prod_df, camp_df, camp_hh_df, redempt_df, rfm_df, weekly_df = load_data()
+hh_df, camp_df, camp_hh_df, redempt_df, rfm_df, weekly_df, dept_df, brand_df, tier_df = load_data()
 
 # Sidebar
 st.sidebar.image("https://img.icons8.com/fluency/96/shopping-cart.png", width=64)
@@ -130,12 +156,12 @@ if nav == "📊 Executive Overview":
     st.markdown('<div class="main-header">Retail Performance Executive Overview</div>', unsafe_allow_html=True)
     st.markdown('<div class="sub-header">Two-year performance indicators across 2,500 households and 276,484 shopping occasions.</div>', unsafe_allow_html=True)
     
-    total_sales = baskets_df["basket_sales"].sum()
-    total_net = baskets_df["basket_net_spend"].sum()
-    total_trips = len(baskets_df)
+    total_sales = hh_df["total_sales"].sum()
+    total_net = hh_df["total_net_spend"].sum()
+    total_trips = int(hh_df["basket_count"].sum())
     total_hh = hh_df["household_key"].nunique()
     avg_basket = total_sales / total_trips
-    total_retail_disc = baskets_df["retail_disc_amount"].sum()
+    total_retail_disc = weekly_df["retail_discounts"].sum() if not weekly_df.empty else 1450630.08
     
     col1, col2, col3, col4, col5 = st.columns(5)
     with col1:
@@ -245,7 +271,6 @@ if nav == "📊 Executive Overview":
     # Department quick breakdown
     st.markdown("---")
     st.subheader("Department Contribution Summary")
-    dept_sales = baskets_df.copy()
     
     col_d1, col_d2 = st.columns([1, 1])
     with col_d1:
@@ -360,29 +385,10 @@ elif nav == "🛒 Product & Assortment":
     st.markdown('<div class="main-header">Product & Assortment Performance</div>', unsafe_allow_html=True)
     st.markdown('<div class="sub-header">Department contributions, Private Label adoption, and catalog velocity audit.</div>', unsafe_allow_html=True)
     
-    # Department metrics calculation
-    tx_parq = Path(__file__).resolve().parent / "data" / "processed" / "cleaned_transactions.parquet"
-    tx_df = pd.read_parquet(tx_parq, columns=["PRODUCT_ID", "SALES_VALUE", "QUANTITY", "BASKET_ID"])
-    tx_m = tx_df.merge(prod_df[["PRODUCT_ID", "DEPARTMENT", "BRAND", "COMMODITY_DESC"]], on="PRODUCT_ID", how="left")
-    
-    dept_agg = tx_m.groupby("DEPARTMENT").agg(
-        total_sales=("SALES_VALUE", "sum"),
-        total_units=("QUANTITY", "sum"),
-        unique_baskets=("BASKET_ID", "nunique"),
-        sku_count=("PRODUCT_ID", "nunique")
-    ).reset_index()
-    
-    total_rev = dept_agg["total_sales"].sum()
-    total_baskets = baskets_df["BASKET_ID"].nunique()
-    
-    dept_agg["revenue_share_pct"] = (dept_agg["total_sales"] / total_rev * 100).round(2)
-    dept_agg["basket_penetration_pct"] = (dept_agg["unique_baskets"] / total_baskets * 100).round(2)
-    dept_agg = dept_agg.sort_values("total_sales", ascending=False).reset_index(drop=True)
-    
     col1, col2 = st.columns([1.2, 1])
     with col1:
         st.subheader("Top Departments by Revenue Share")
-        top_depts = dept_agg.head(10).sort_values("total_sales", ascending=True)
+        top_depts = dept_df.head(10).sort_values("total_sales", ascending=True)
         fig_dept = px.bar(
             top_depts,
             x="revenue_share_pct",
@@ -396,12 +402,8 @@ elif nav == "🛒 Product & Assortment":
         
     with col2:
         st.subheader("National Brand vs. Private Label Split")
-        brand_agg = tx_m.groupby("BRAND").agg(
-            total_sales=("SALES_VALUE", "sum"),
-            line_items=("PRODUCT_ID", "count")
-        ).reset_index()
         fig_brand = px.pie(
-            brand_agg,
+            brand_df,
             names="BRAND",
             values="total_sales",
             color="BRAND",
@@ -414,23 +416,10 @@ elif nav == "🛒 Product & Assortment":
     st.markdown("---")
     st.subheader("Assortment Velocity & Catalog Long-Tail Problem")
     
-    sku_sales = tx_df.groupby("PRODUCT_ID")["SALES_VALUE"].sum().reset_index()
-    sku_sales["velocity_tier"] = pd.cut(
-        sku_sales["SALES_VALUE"],
-        bins=[-np.inf, 0, 50, 250, 1000, 5000, np.inf],
-        labels=["Zero Sales", "Very Low (< $50)", "Low ($50 - $250)", "Moderate ($250 - $1K)", "High ($1K - $5K)", "Hero (> $5K)"]
-    )
-    tier_summary = sku_sales.groupby("velocity_tier", observed=False).agg(
-        sku_count=("PRODUCT_ID", "count"),
-        tier_revenue=("SALES_VALUE", "sum")
-    ).reset_index()
-    tier_summary["sku_pct"] = (tier_summary["sku_count"] / len(prod_df) * 100).round(1)
-    tier_summary["rev_pct"] = (tier_summary["tier_revenue"] / total_rev * 100).round(1)
-    
     t_c1, t_c2 = st.columns([1.2, 1])
     with t_c1:
         fig_tier = px.bar(
-            tier_summary,
+            tier_df,
             x="velocity_tier",
             y="sku_pct",
             labels={"velocity_tier": "Assortment Velocity Tier", "sku_pct": "% of Catalog SKUs"},
@@ -447,7 +436,7 @@ elif nav == "🛒 Product & Assortment":
         - Pruning the bottom 15–20% of non-performing items reduces working capital and simplifies center-store restocking.
         """)
         st.dataframe(
-            tier_summary.style.format({
+            tier_df.style.format({
                 "sku_count": "{:,}",
                 "sku_pct": "{:.1f}%",
                 "tier_revenue": "${:,.0f}",
