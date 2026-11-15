@@ -125,9 +125,7 @@ st.sidebar.markdown("""
 - **Timeline**: 102 Weeks (711 Days)
 """)
 
-# -----------------------------------------------------------------------------
-# TAB 1: EXECUTIVE OVERVIEW
-# -----------------------------------------------------------------------------
+# Executive overview view
 if nav == "📊 Executive Overview":
     st.markdown('<div class="main-header">Retail Performance Executive Overview</div>', unsafe_allow_html=True)
     st.markdown('<div class="sub-header">Two-year performance indicators across 2,500 households and 276,484 shopping occasions.</div>', unsafe_allow_html=True)
@@ -183,7 +181,7 @@ if nav == "📊 Executive Overview":
         
     st.markdown("<br>", unsafe_allow_html=True)
     
-    # Weekly Revenue Trend
+    # Weekly revenue trend
     col_left, col_right = st.columns([1.5, 1])
     
     with col_left:
@@ -262,9 +260,7 @@ if nav == "📊 Executive Overview":
         - **Assortment Inefficiency**: Over 55% of the 92,353 catalog SKUs generated under $50 across two years.
         """)
 
-# -----------------------------------------------------------------------------
-# TAB 2: CUSTOMER & RFM INTELLIGENCE
-# -----------------------------------------------------------------------------
+# Customer and RFM intelligence view
 elif nav == "👥 Customer & RFM Intelligence":
     st.markdown('<div class="main-header">Customer Behavior & RFM Segmentation</div>', unsafe_allow_html=True)
     st.markdown('<div class="sub-header">Descriptive segmentation based on Recency, Frequency, and Monetary quartiles.</div>', unsafe_allow_html=True)
@@ -322,7 +318,6 @@ elif nav == "👥 Customer & RFM Intelligence":
                 "avg_trips": "{:.0f}",
                 "avg_basket": "${:.2f}"
             }),
-            ,
             height=340
         )
         
@@ -360,14 +355,12 @@ elif nav == "👥 Customer & RFM Intelligence":
         fig_home.update_layout(showlegend=False, margin=dict(l=0, r=0, t=10, b=0), height=300)
         st.plotly_chart(fig_home)
 
-# -----------------------------------------------------------------------------
-# TAB 3: PRODUCT & ASSORTMENT
-# -----------------------------------------------------------------------------
+# Product and assortment view
 elif nav == "🛒 Product & Assortment":
     st.markdown('<div class="main-header">Product & Assortment Performance</div>', unsafe_allow_html=True)
     st.markdown('<div class="sub-header">Department contributions, Private Label adoption, and catalog velocity audit.</div>', unsafe_allow_html=True)
     
-    # Department Metrics
+    # Department metrics calculation
     tx_parq = Path(__file__).resolve().parent / "data" / "processed" / "cleaned_transactions.parquet"
     tx_df = pd.read_parquet(tx_parq, columns=["PRODUCT_ID", "SALES_VALUE", "QUANTITY", "BASKET_ID"])
     tx_m = tx_df.merge(prod_df[["PRODUCT_ID", "DEPARTMENT", "BRAND", "COMMODITY_DESC"]], on="PRODUCT_ID", how="left")
@@ -459,18 +452,15 @@ elif nav == "🛒 Product & Assortment":
                 "sku_pct": "{:.1f}%",
                 "tier_revenue": "${:,.0f}",
                 "rev_pct": "{:.1f}%"
-            }),
-            
+            })
         )
 
-# -----------------------------------------------------------------------------
-# TAB 4: PROMOTION & CAMPAIGN ROI
-# -----------------------------------------------------------------------------
+# Promotion and campaign ROI view
 elif nav == "🏷️ Promotion & Campaign ROI":
     st.markdown('<div class="main-header">Promotions & Direct Marketing Effectiveness</div>', unsafe_allow_html=True)
     st.markdown('<div class="sub-header">Evaluating 30 direct marketing campaigns, coupon participation, and redeemer premiums.</div>', unsafe_allow_html=True)
     
-    # Campaign analysis
+    # Campaign targeting and redemption aggregation
     camp_targets = camp_hh_df.groupby("CAMPAIGN")["household_key"].nunique().reset_index(name="targeted_hh")
     camp_reds = redempt_df.groupby("CAMPAIGN").agg(
         redemptions=("COUPON_UPC", "count"),
@@ -536,8 +526,7 @@ elif nav == "🏷️ Promotion & Campaign ROI":
                 "median_spend": "${:,.2f}",
                 "mean_trips": "{:.1f}",
                 "mean_basket": "${:.2f}"
-            }),
-            
+            })
         )
     with rc2:
         st.markdown("""
@@ -546,9 +535,7 @@ elif nav == "🏷️ Promotion & Campaign ROI":
         - **Promotional Finding**: Redeemers are highly engaged frequent shoppers using coupons on existing weekly pantry routines.
         """)
 
-# -----------------------------------------------------------------------------
-# TAB 5: SQL QUERY EXPLORER
-# -----------------------------------------------------------------------------
+# SQL query explorer view
 elif nav == "⚡ SQL Query Explorer":
     st.markdown('<div class="main-header">SQL Analytical Query Repository</div>', unsafe_allow_html=True)
     st.markdown('<div class="sub-header">Production-grade PostgreSQL queries used in the analysis.</div>', unsafe_allow_html=True)
