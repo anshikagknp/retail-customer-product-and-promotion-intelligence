@@ -42,128 +42,74 @@ flowchart LR
 
 ```text
 retail-customer-product-and-promotion-intelligence/
-├── app.py                                 # Interactive Streamlit executive dashboard
+├── app.py                                 # Interactive Streamlit dashboard
 ├── data/
-│   ├── raw/                               # Unmodified raw dunnhumby source CSVs
-│   │   ├── campaign_desc.csv
-│   │   ├── campaign_table.csv
-│   │   ├── coupon.csv
-│   │   ├── coupon_redempt.csv
-│   │   ├── hh_demographic.csv
-│   │   ├── product.csv
-│   │   ├── transaction_data.csv
-│   │   └── User_Guide.pdf
-│   └── processed/                         # Cleaned, standardized & aggregated data
-│       ├── baskets.csv                    # 276,484 shopping trips (basket grain)
-│       ├── cleaned_campaign_households.csv
-│       ├── cleaned_campaigns.csv
-│       ├── cleaned_coupon_redemptions.csv
-│       ├── cleaned_coupons.csv            # 119,384 deduplicated mappings
-│       ├── cleaned_demographics.csv
-│       ├── cleaned_products.csv
-│       ├── cleaned_transactions.csv       # Preserved 2,595,732 transaction lines
-│       ├── cleaned_transactions.parquet   # High-performance Parquet format
-│       └── household_summary.csv          # 2,500 household RFM & KPI summary
-├── notebooks/                             # Executed Jupyter analysis notebooks
-│   ├── 01_data_understanding.ipynb        # Data audit, foreign keys, table grains
-│   ├── 02_data_cleaning.ipynb             # Type casting, discount derivation, export
-│   ├── 03_customer_analysis.ipynb         # Spend distributions, Pareto, RFM, demographics
-│   ├── 04_product_sales_analysis.ipynb    # Department share, private label, long tail, trends
-│   └── 05_promotion_analysis.ipynb        # In-store discounts, campaign ROI, coupon curves
-├── sql/                                   # PostgreSQL relational database scripts
-│   ├── schema.sql                         # PostgreSQL DDL tables, indexes, and COPY instructions
-│   ├── customer_analysis.sql              # Pareto CTEs, RFM NTILEs, visit cadence LAGs
-│   ├── product_sales_analysis.sql         # Department rankings, brand splits, moving averages
-│   └── promotion_analysis.sql             # Discount composition, redemption rates, curves
-├── reports/                               # Strategic leadership reports
+│   ├── raw/                               # Raw dunnhumby CSV datasets & guide
+│   └── processed/                         # Cleaned transaction, basket & summary tables
+├── notebooks/                             # Jupyter analysis notebooks
+│   ├── 01_data_understanding.ipynb        # Audit, foreign keys, table grains
+│   ├── 02_data_cleaning.ipynb             # Cleaning, discount metrics, aggregations
+│   ├── 03_customer_analysis.ipynb         # Pareto, RFM segmentation, demographics
+│   ├── 04_product_sales_analysis.ipynb    # Department share, private label, long tail
+│   └── 05_promotion_analysis.ipynb        # Campaign performance & coupon redemptions
+├── sql/                                   # PostgreSQL relational analytical queries
+│   ├── schema.sql                         # Table DDL, keys, and indexes
+│   ├── customer_analysis.sql              # Pareto CTEs, RFM NTILEs, visit cadence
+│   ├── product_sales_analysis.sql         # Department rankings, brand splits, moving avg
+│   └── promotion_analysis.sql             # Discount composition, redemption rates
+├── reports/                               # Executive summary & recommendations
 │   └── executive_summary_and_business_recommendations.md
-├── docs/                                  # Technical & analytical documentation
-│   ├── 01_Project_Overview.md
+├── docs/                                  # Project documentation
+│   ├── project_overview.md                # Project context & objectives
 │   ├── data_dictionary.md                 # Complete schema dictionary
-│   ├── methodology_and_assumptions.md     # Formulas, business logic, assumptions
-│   └── limitations.md                     # Constraints & bias documentation
+│   ├── methodology_and_assumptions.md     # Formulas, segmentation rules, logic
+│   └── limitations.md                     # Dataset constraints & analytical boundaries
 ├── src/                                   # Reusable Python modules
-│   ├── analytics/
-│   │   └── metrics.py                     # RFM calculations, Pareto, dept metrics
-│   ├── data_cleaning/
-│   │   └── cleaners.py                    # Cleaning pipelines, basket aggregators
-│   └── utilities/
-│       └── helpers.py                     # Path helpers, formatting utilities
-├── requirements.txt                       # Verified project dependencies
-└── README.md                              # Main portfolio documentation
+│   ├── analytics/                         # RFM calculations & Pareto metrics
+│   ├── data_cleaning/                     # Pipeline cleaners & basket aggregators
+│   └── utilities/                         # Helper functions & formatting
+├── requirements.txt                       # Project dependencies
+└── README.md
 ```
 
 ---
 
-## 3. Environment Setup & How to Run
+## 3. Core Analytical Domains & Questions Answered
 
-### 3.1 Setup
-Ensure Python 3.10+ is installed:
+### 3.1 Customer Intelligence
+- **Spend Concentration**: How concentrated is retail revenue among frequent shoppers?  
+  *Finding*: Top 20% of households generate 53.1% of company revenue ($4.27M).
+- **Behavioral Segmentation**: How can households be segmented without black-box models?  
+  *Finding*: Using an explainable RFM quartile framework (`NTILE(4)`), households are partitioned into 6 tiers: Champions (63.5% of sales), Potential Loyalists, At Risk High-Value, Lapsing, Occasional, and Hibernating.
+- **Demographic Influences**: How do income and family structure affect basket dynamics?  
+  *Finding*: Higher income tiers ($4,500–$5,500+ spend) and families with 3+ members exhibit substantially higher spend per basket ($35–$45 vs $25) rather than higher trip frequency.
 
-```bash
-# Clone the repository
-git clone <repo-url>
-cd retail-customer-product-and-promotion-intelligence
+### 3.2 Product & Assortment Intelligence
+- **Category Roles**: Which departments drive volume versus perimeter traffic?  
+  *Finding*: Grocery serves as the primary revenue engine (50.5% share, 91.8% basket penetration), while Produce (64.9% penetration) and Meat drive weekly fresh trip frequency.
+- **Store-Brand Value**: What role does Private Label play in customer baskets?  
+  *Finding*: Private Label accounts for 24.5% of sales ($1.97M) and 27.8% of items sold, priced 15–25% below National Brands.
+- **Assortment Rationalization**: How much of the catalog contributes meaningfully to sales?  
+  *Finding*: 55.4% of active SKUs (51,180 items) generate under $50 across two full years, indicating significant inventory holding inefficiencies.
 
-# Create and activate virtual environment
-python3 -m venv .venv
-source .venv/bin/activate  # On Windows: .venv\Scripts\activate
-
-# Install required packages
-pip install -r requirements.txt
-```
-
-### 3.2 Launch the Interactive Streamlit Dashboard
-To launch the interactive dashboard locally:
-
-```bash
-streamlit run app.py
-```
-
-The dashboard includes 5 comprehensive analytical views:
-1. **Executive Overview**: Financial KPIs, weekly revenue trend with 4-week MA, Pareto Lorenz curve.
-2. **Customer & RFM Intelligence**: Customer value distributions, RFM segmentation matrix, demographic spend breakdowns.
-3. **Product & Assortment**: Department revenue & penetration, Private Label share, SKU velocity tiers and long-tail analysis.
-4. **Promotion & Campaign ROI**: Campaign portfolio performance, Type A vs Type B/C comparison, redeemer vs non-redeemer profiles.
-5. **SQL Query Explorer**: Live repository of production-grade PostgreSQL analytical queries.
-
-### 3.3 Executing the Notebooks
-To re-run any notebook:
-
-```bash
-jupyter nbconvert --to notebook --execute notebooks/01_data_understanding.ipynb --output 01_data_understanding.ipynb --output-dir notebooks
-jupyter nbconvert --to notebook --execute notebooks/02_data_cleaning.ipynb --output 02_data_cleaning.ipynb --output-dir notebooks
-jupyter nbconvert --to notebook --execute notebooks/03_customer_analysis.ipynb --output 03_customer_analysis.ipynb --output-dir notebooks
-jupyter nbconvert --to notebook --execute notebooks/04_product_sales_analysis.ipynb --output 04_product_sales_analysis.ipynb --output-dir notebooks
-jupyter nbconvert --to notebook --execute notebooks/05_promotion_analysis.ipynb --output 05_promotion_analysis.ipynb --output-dir notebooks
-```
+### 3.3 Promotion & Campaign Intelligence
+- **Promotional Mix**: Where do customer discount dollars actually go?  
+  *Finding*: Automatic loyalty card discounts account for 97.0% of all discounts ($1.45M), utilized on 56.4% of shopping baskets.
+- **Campaign Strategy Comparison**: Does personalized coupon targeting outperform broadcast mailers?  
+  *Finding*: Type A campaigns (personalized coupon pools) achieve double the household participation rate of broad broadcast mailers (10.6% vs 4.9%), driving 74.2% of all redemptions.
+- **Redeemer Behavior**: Do coupons increase transaction size or visit frequency?  
+  *Finding*: Coupon redeemers spend 115% more ($5,785 vs $2,684) primarily by shopping twice as often (194 trips vs 93 trips), with comparable basket sizes ($30.95 vs $28.47).
 
 ---
 
-## 4. PostgreSQL Relational Database Implementation
+## 4. Strategic Business Recommendations
 
-The relational schema implements standard primary and foreign key constraints, composite keys, and indexing across high-cardinality attributes (`household_key`, `product_id`, `basket_id`, `day`, `week_no`).
-
-### Ingestion Steps into PostgreSQL:
-1. Connect to PostgreSQL using `psql` or pgAdmin:
-   ```bash
-   psql -U postgres -d retail_intelligence -f sql/schema.sql
-   ```
-2. Execute data loading via `\copy`:
-   ```sql
-   \copy demographics FROM 'data/processed/cleaned_demographics.csv' WITH (FORMAT csv, HEADER true);
-   \copy products FROM 'data/processed/cleaned_products.csv' WITH (FORMAT csv, HEADER true);
-   \copy campaigns FROM 'data/processed/cleaned_campaigns.csv' WITH (FORMAT csv, HEADER true);
-   \copy campaign_households FROM 'data/processed/cleaned_campaign_households.csv' WITH (FORMAT csv, HEADER true);
-   \copy coupons FROM 'data/processed/cleaned_coupons.csv' WITH (FORMAT csv, HEADER true);
-   \copy coupon_redemptions FROM 'data/processed/cleaned_coupon_redemptions.csv' WITH (FORMAT csv, HEADER true);
-   \copy baskets FROM 'data/processed/baskets.csv' WITH (FORMAT csv, HEADER true);
-   \copy transactions FROM 'data/processed/cleaned_transactions.csv' WITH (FORMAT csv, HEADER true);
-   ```
-3. Run analytical queries:
-   - `sql/customer_analysis.sql`: Pareto decile analysis, RFM segmentation CTE with `NTILE(4)`, inter-visit cadence with `LAG() OVER()`.
-   - `sql/product_sales_analysis.sql`: Department rankings, Private Label penetration, top hero SKUs, 4-week rolling moving average.
-   - `sql/promotion_analysis.sql`: Promotional discount composition, campaign participation rate, redeemer vs non-redeemer comparison.
+| Strategic Area | Core Finding | Recommended Action | Expected Business Impact |
+|---|---|---|---|
+| **VIP Retention** | Top 20% drive 53.1% of revenue; 3.4% at risk of churning | Implement automated 30-day inactivity alert and high-impact bounce-back incentives | 15–20% reduction in VIP customer churn; protects ~$70K–$120K annual sales |
+| **Assortment Pruning** | 55.4% of SKUs generate < $50 in 2 years | Delist bottom 15–20% low-velocity center-store SKUs; expand facings for top fresh staples | 8–12% reduction in holding costs; reduced out-of-stocks on high-velocity items |
+| **Promotional Shift** | Personalized Type A campaigns achieve 2x participation over broadcast | Reallocate print circular budgets into personalized mobile app digital offers | 35–40% increase in promotional marketing ROI by eliminating unread mailers |
+| **Private Label Expansion** | Private Label holds 24.5% share, delivering 15–25% consumer savings | Expand store-brand tiers in high-commodity categories (dairy, bakery, paper goods) | 100–150 bps improvement in gross margin across expanded categories |
 
 ---
 
